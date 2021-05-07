@@ -53,6 +53,7 @@ public class I18nConstants {
   public static final String CODESYSTEM_CS_NO_SUPPLEMENT = "CODESYSTEM_CS_NO_SUPPLEMENT"; 
   public static final String CODESYSTEM_CS_SUPP_CANT_CHECK = "CODESYSTEM_CS_SUPP_CANT_CHECK";
   public static final String CODESYSTEM_CS_SUPP_INVALID_CODE = "CODESYSTEM_CS_SUPP_INVALID_CODE";
+  public static final String CODESYSTEM_CS_UNK_EXPANSION = "CODESYSTEM_CS_UNK_EXPANSION";
   public static final String CODE_FOUND_IN_EXPANSION_HOWEVER_ = "Code_found_in_expansion_however_";
   public static final String CODING_HAS_NO_SYSTEM__CANNOT_VALIDATE = "Coding_has_no_system__cannot_validate";
   public static final String CONTAINED_RESOURCE_DOES_NOT_APPEAR_TO_BE_A_FHIR_RESOURCE_UNKNOWN_NAME_ = "Contained_resource_does_not_appear_to_be_a_FHIR_resource_unknown_name_";
@@ -361,6 +362,8 @@ public class I18nConstants {
   public static final String SD_ED_BIND_UNKNOWN_VS = "SD_ED_BIND_UNKNOWN_VS";
   public static final String SD_ED_BIND_NOT_VS = "SD_ED_BIND_NOT_VS";
   public static final String SD_ED_BIND_NO_BINDABLE = "SD_ED_BIND_NO_BINDABLE";
+  public static final String SD_VALUE_TYPE_IILEGAL = "SD_VALUE_TYPE_IILEGAL";
+  public static final String SD_NO_TYPES_OR_CONTENTREF = "SD_NO_TYPES_OR_CONTENTREF";
   public static final String SEARCHPARAMETER_BASE_WRONG = "SEARCHPARAMETER_BASE_WRONG";
   public static final String SEARCHPARAMETER_EXP_WRONG = "SEARCHPARAMETER_EXP_WRONG";
   public static final String SEARCHPARAMETER_NOTFOUND = "SEARCHPARAMETER_NOTFOUND";
@@ -383,12 +386,13 @@ public class I18nConstants {
   public static final String TERMINOLOGY_TX_CODE_NOTVALID = "Terminology_TX_Code_NotValid";
   public static final String TERMINOLOGY_TX_CODE_UNKNOWN = "Terminology_TX_Code_Unknown";
   public static final String TERMINOLOGY_TX_CODE_VALUESET = "Terminology_TX_Code_ValueSet";
+  public static final String Terminology_TX_Code_ValueSet_MISSING = "Terminology_TX_Code_ValueSet_MISSING";
   public static final String TERMINOLOGY_TX_CODE_VALUESETMAX = "Terminology_TX_Code_ValueSetMax";
   public static final String TERMINOLOGY_TX_CODE_VALUESET_EXT = "Terminology_TX_Code_ValueSet_Ext";
   public static final String TERMINOLOGY_TX_CODING_COUNT = "Terminology_TX_Coding_Count";
-  public static final String TERMINOLOGY_TX_CONFIRM_1 = "Terminology_TX_Confirm_1";
-  public static final String TERMINOLOGY_TX_CONFIRM_2 = "Terminology_TX_Confirm_2";
-  public static final String TERMINOLOGY_TX_CONFIRM_3 = "Terminology_TX_Confirm_3";
+  public static final String TERMINOLOGY_TX_CONFIRM_1_CC = "Terminology_TX_Confirm_1_CC";
+  public static final String TERMINOLOGY_TX_CONFIRM_2_CC = "Terminology_TX_Confirm_2_CC";
+  public static final String TERMINOLOGY_TX_CONFIRM_3_CC = "Terminology_TX_Confirm_3_CC";
   public static final String TERMINOLOGY_TX_CONFIRM_4a = "Terminology_TX_Confirm_4a";
   public static final String TERMINOLOGY_TX_CONFIRM_4b = "Terminology_TX_Confirm_4b";
   public static final String TERMINOLOGY_TX_CONFIRM_5 = "Terminology_TX_Confirm_5";
@@ -398,7 +402,7 @@ public class I18nConstants {
   public static final String TERMINOLOGY_TX_ERROR_CODEABLECONCEPT_MAX = "Terminology_TX_Error_CodeableConcept_Max";
   public static final String TERMINOLOGY_TX_ERROR_CODING1 = "Terminology_TX_Error_Coding1";
   public static final String TERMINOLOGY_TX_ERROR_CODING2 = "Terminology_TX_Error_Coding2";
-  public static final String TERMINOLOGY_TX_NOVALID_1 = "Terminology_TX_NoValid_1";
+  public static final String TERMINOLOGY_TX_NOVALID_1_CC = "Terminology_TX_NoValid_1_CC";
   public static final String TERMINOLOGY_TX_NOVALID_10 = "Terminology_TX_NoValid_10";
   public static final String TERMINOLOGY_TX_NOVALID_11 = "Terminology_TX_NoValid_11";
   public static final String TERMINOLOGY_TX_NOVALID_12 = "Terminology_TX_NoValid_12";
@@ -408,8 +412,8 @@ public class I18nConstants {
   public static final String TERMINOLOGY_TX_NOVALID_16 = "Terminology_TX_NoValid_16";
   public static final String TERMINOLOGY_TX_NOVALID_17 = "Terminology_TX_NoValid_17";
   public static final String TERMINOLOGY_TX_NOVALID_18 = "Terminology_TX_NoValid_18";
-  public static final String TERMINOLOGY_TX_NOVALID_2 = "Terminology_TX_NoValid_2";
-  public static final String TERMINOLOGY_TX_NOVALID_3 = "Terminology_TX_NoValid_3";
+  public static final String TERMINOLOGY_TX_NOVALID_2_CC = "Terminology_TX_NoValid_2_CC";
+  public static final String TERMINOLOGY_TX_NOVALID_3_CC = "Terminology_TX_NoValid_3_CC";
   public static final String TERMINOLOGY_TX_NOVALID_4 = "Terminology_TX_NoValid_4";
   public static final String TERMINOLOGY_TX_NOVALID_5 = "Terminology_TX_NoValid_5";
   public static final String TERMINOLOGY_TX_NOVALID_6 = "Terminology_TX_NoValid_6";
@@ -627,6 +631,15 @@ public class I18nConstants {
   public static final String BUNDLE_RULE_UNKNOWN = "BUNDLE_RULE_UNKNOWN";
   public static final String BUNDLE_RULE_INVALID_INDEX = "BUNDLE_RULE_INVALID_INDEX";
   public static final String BUNDLE_RULE_PROFILE_UNKNOWN = "BUNDLE_RULE_PROFILE_UNKNOWN";
+  public static final String BUNDLE_SEARCH_NOSELF = "BUNDLE_SEARCH_NOSELF";
+  public static final String BUNDLE_SEARCH_SELF_NOT_UNDERSTOOD = "BUNDLE_SEARCH_SELF_NOT_UNDERSTOOD";
+  public static final String BUNDLE_SEARCH_ENTRY_NO_RESOURCE = "BUNDLE_SEARCH_ENTRY_NO_RESOURCE";
+  public static final String BUNDLE_SEARCH_ENTRY_TYPE_NOT_SURE = "BUNDLE_SEARCH_ENTRY_TYPE_NOT_SURE";
+  public static final String BUNDLE_SEARCH_ENTRY_NO_RESOURCE_ID = "BUNDLE_SEARCH_ENTRY_NO_RESOURCE_ID";
+  public static final String BUNDLE_SEARCH_ENTRY_WRONG_RESOURCE_TYPE_MODE = "BUNDLE_SEARCH_ENTRY_WRONG_RESOURCE_TYPE_MODE";
+  public static final String BUNDLE_SEARCH_ENTRY_WRONG_RESOURCE_TYPE_NO_MODE = "BUNDLE_SEARCH_ENTRY_WRONG_RESOURCE_TYPE_NO_MODE";
+  public static final String BUNDLE_SEARCH_NO_MODE = "BUNDLE_SEARCH_NO_MODE";
+  public static final String BUNDLE_SEARCH_ENTRY_WRONG_RESOURCE_TYPE_OUTCOME = "BUNDLE_SEARCH_ENTRY_WRONG_RESOURCE_TYPE_OUTCOME";
 }
 
 

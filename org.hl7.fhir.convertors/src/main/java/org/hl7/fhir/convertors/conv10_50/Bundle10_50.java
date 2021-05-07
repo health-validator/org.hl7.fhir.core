@@ -1,6 +1,6 @@
 package org.hl7.fhir.convertors.conv10_50;
 
-import org.hl7.fhir.convertors.VersionConvertorAdvisor50;
+import org.hl7.fhir.convertors.advisors.VersionConvertorAdvisor50;
 import org.hl7.fhir.convertors.VersionConvertor_10_50;
 import org.hl7.fhir.exceptions.FHIRException;
 
@@ -71,9 +71,7 @@ public class Bundle10_50 {
         for (org.hl7.fhir.r5.model.Bundle.BundleLinkComponent t : src.getLink()) tgt.addLink(convertBundleLinkComponent(t));
         if (src.hasFullUrlElement())
             tgt.setFullUrlElement(VersionConvertor_10_50.convertUri(src.getFullUrlElement()));
-        org.hl7.fhir.dstu2.model.Resource res = advisor.convertR2(src.getResource());
-        if (res == null)
-            res = VersionConvertor_10_50.convertResource(src.getResource());
+        org.hl7.fhir.dstu2.model.Resource res = VersionConvertor_10_50.convertResource(src.getResource());
         tgt.setResource(res);
         if (src.hasSearch())
             tgt.setSearch(convertBundleEntrySearchComponent(src.getSearch()));

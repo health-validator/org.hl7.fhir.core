@@ -34,7 +34,7 @@ package org.hl7.fhir.validation;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
-import org.hl7.fhir.convertors.VersionConvertorAdvisor50;
+import org.hl7.fhir.convertors.advisors.VersionConvertorAdvisor50;
 import org.hl7.fhir.convertors.VersionConvertor_10_50;
 import org.hl7.fhir.convertors.VersionConvertor_14_50;
 import org.hl7.fhir.convertors.VersionConvertor_30_50;
@@ -109,33 +109,12 @@ public class NativeHostServices {
     }
 
     @Override
-    public org.hl7.fhir.dstu2016may.model.Resource convertR2016May(Resource resource) throws FHIRException {
-      return null;
-    }
-
-    @Override
-    public org.hl7.fhir.dstu2.model.Resource convertR2(Resource resource) throws FHIRException {
-      return null;
-    }
-
-    @Override
-    public org.hl7.fhir.dstu3.model.Resource convertR3(Resource resource) throws FHIRException {
-      return null;
-    }
-
-    @Override
     public void handleCodeSystem(CodeSystem tgtcs, ValueSet source) throws FHIRException {
     }
 
     @Override
     public CodeSystem getCodeSystem(ValueSet src) throws FHIRException {
       throw new FHIRException("Code systems cannot be handled at this time"); // what to do? need thread local storage? 
-    }
-
-    @Override
-    public org.hl7.fhir.r4.model.Resource convertR4(Resource resource) throws FHIRException {
-      // still to do
-      return null;
     }
 
   }

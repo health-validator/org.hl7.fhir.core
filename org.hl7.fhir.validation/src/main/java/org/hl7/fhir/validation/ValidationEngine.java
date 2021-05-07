@@ -1,14 +1,15 @@
 package org.hl7.fhir.validation;
 
-import com.google.gson.JsonObject;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import org.hl7.fhir.convertors.*;
+import org.hl7.fhir.convertors.advisors.VersionConvertorAdvisor50;
 import org.hl7.fhir.convertors.txClient.TerminologyClientFactory;
 import org.hl7.fhir.exceptions.DefinitionException;
 import org.hl7.fhir.exceptions.FHIRException;
 import org.hl7.fhir.r5.conformance.ProfileUtilities;
+import org.hl7.fhir.r5.context.IWorkerContext.ICanonicalResourceLocator;
 import org.hl7.fhir.r5.context.IWorkerContext.PackageVersion;
 import org.hl7.fhir.r5.context.SimpleWorkerContext;
 import org.hl7.fhir.r5.elementmodel.Element;
@@ -30,20 +31,16 @@ import org.hl7.fhir.r5.utils.ToolingExtensions;
 import org.hl7.fhir.r5.utils.structuremap.StructureMapUtilities;
 import org.hl7.fhir.utilities.TimeTracker;
 import org.hl7.fhir.utilities.*;
-import org.hl7.fhir.utilities.json.JSONUtil;
-import org.hl7.fhir.utilities.json.JsonTrackingParser;
 import org.hl7.fhir.utilities.npm.FilesystemPackageCacheManager;
 import org.hl7.fhir.utilities.npm.NpmPackage;
 import org.hl7.fhir.utilities.npm.ToolsVersion;
 import org.hl7.fhir.utilities.validation.ValidationMessage;
 import org.hl7.fhir.utilities.xhtml.XhtmlComposer;
-import org.hl7.fhir.utilities.xml.XMLUtil;
 import org.hl7.fhir.validation.BaseValidator.ValidationControl;
 import org.hl7.fhir.validation.cli.services.IPackageInstaller;
 import org.hl7.fhir.validation.cli.utils.*;
 import org.hl7.fhir.validation.instance.InstanceValidator;
 import org.hl7.fhir.validation.instance.utils.ValidatorHostContext;
-import org.w3c.dom.Document;
 import org.xml.sax.SAXException;
 
 import java.io.*;
@@ -138,6 +135,7 @@ public class ValidationEngine implements IValidatorResourceFetcher, IPackageInst
   @Getter @Setter private PrintWriter mapLog;
   @Getter @Setter private boolean debug = false;
   @Getter @Setter private IValidatorResourceFetcher fetcher;
+  @Getter @Setter private ICanonicalResourceLocator locator;
   @Getter @Setter private boolean assumeValidRestReferences;
   @Getter @Setter private boolean noExtensibleBindingMessages;
   @Getter @Setter private boolean securityChecks;
@@ -485,9 +483,9 @@ public class ValidationEngine implements IValidatorResourceFetcher, IPackageInst
         makeSnapshot(sd);
       } catch (Exception e) {
         System.out.println("Process Note: Unable to generate snapshot for " + sd.present() + ": " + e.getMessage());
-        if (debug) {
+//        if (debug) {
           e.printStackTrace();
-        }
+//        }
       }
     }
   }
@@ -656,7 +654,7 @@ public class ValidationEngine implements IValidatorResourceFetcher, IPackageInst
 
   public FilesystemPackageCacheManager getPcm() throws IOException {
     if (pcm == null) {
-      System.out.println("Creating Package manager?");
+      //System.out.println("Creating Package manager?");
       pcm = new FilesystemPackageCacheManager(true, ToolsVersion.TOOLS_VERSION);
     }
     return pcm;
@@ -722,7 +720,11 @@ public class ValidationEngine implements IValidatorResourceFetcher, IPackageInst
       return true;
     }
     if (fetcher != null) {
-      return fetcher.resolveURL(appContext, path, url, type);
+      try {
+        return fetcher.resolveURL(appContext, path, url, type);
+      } catch (Exception e) {
+        return false;
+      }
     }
     return false;
   }
