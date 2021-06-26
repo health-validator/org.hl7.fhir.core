@@ -1,7 +1,5 @@
 package org.hl7.fhir.convertors.misc;
 
-import org.hl7.fhir.convertors.advisors.VersionConvertorAdvisor40;
-
 /*
   Copyright (c) 2011+, HL7, Inc.
   All rights reserved.
@@ -31,31 +29,14 @@ import org.hl7.fhir.convertors.advisors.VersionConvertorAdvisor40;
   
  */
 
-
-
-import org.hl7.fhir.dstu2.model.Resource;
-import org.hl7.fhir.exceptions.FHIRException;
-import org.hl7.fhir.r4.model.Bundle.BundleEntryComponent;
+import org.hl7.fhir.convertors.advisors.impl.BaseAdvisor_10_40;
 import org.hl7.fhir.r4.model.CodeSystem;
 import org.hl7.fhir.r4.model.ValueSet;
+import org.jetbrains.annotations.NotNull;
 
-public class IGR2ConvertorAdvisor implements VersionConvertorAdvisor40 {
-
+public class IGR2ConvertorAdvisor extends BaseAdvisor_10_40 {
   @Override
-  public boolean ignoreEntry(BundleEntryComponent src) {
-    return false;
-  }
-
-
-
-  @Override
-  public void handleCodeSystem(CodeSystem cs, ValueSet vs) {
+  public void handleCodeSystem(@NotNull CodeSystem cs, @NotNull ValueSet vs) {
     cs.setId(vs.getId());
   }
-
-  @Override
-  public CodeSystem getCodeSystem(ValueSet src) {
-    return null;
-  }
-
 }

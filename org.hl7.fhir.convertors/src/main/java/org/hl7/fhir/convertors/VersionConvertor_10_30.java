@@ -1,6 +1,6 @@
 package org.hl7.fhir.convertors;
 
-import org.hl7.fhir.convertors.advisors.VersionConvertorAdvisor30;
+import org.hl7.fhir.convertors.advisors.impl.BaseAdvisor_10_30;
 import org.hl7.fhir.convertors.conv10_30.*;
 import org.hl7.fhir.dstu2.model.CodeableConcept;
 import org.hl7.fhir.dstu2.utils.ToolingExtensions;
@@ -46,7 +46,7 @@ import java.util.stream.Collectors;
   POSSIBILITY OF SUCH DAMAGE.
  */
 
-public class VersionConvertor_10_30 extends VersionConvertor_Base {
+public class VersionConvertor_10_30 {
   public static void copyElement(org.hl7.fhir.dstu2.model.Element src, org.hl7.fhir.dstu3.model.Element tgt) throws FHIRException {
     tgt.setId(src.getId());
     for (org.hl7.fhir.dstu2.model.Extension e : src.getExtension()) {
@@ -2725,7 +2725,7 @@ public class VersionConvertor_10_30 extends VersionConvertor_Base {
     return t.hasCoding() && ("http://unstats.un.org/unsd/methods/m49/m49.htm".equals(t.getCoding().get(0).getSystem()) || "urn:iso:std:iso:3166".equals(t.getCoding().get(0).getSystem()) || "https://www.usps.com/".equals(t.getCoding().get(0).getSystem()));
   }
 
-  public static org.hl7.fhir.dstu3.model.Resource convertResource(org.hl7.fhir.dstu2.model.Resource src, VersionConvertorAdvisor30 advisor) throws FHIRException {
+  public static org.hl7.fhir.dstu3.model.Resource convertResource(org.hl7.fhir.dstu2.model.Resource src, BaseAdvisor_10_30 advisor) throws FHIRException {
     if (src == null || src.isEmpty()) return null;
     if (src instanceof org.hl7.fhir.dstu2.model.Parameters)
       return Parameters10_30.convertParameters((org.hl7.fhir.dstu2.model.Parameters) src);
@@ -2876,7 +2876,7 @@ public class VersionConvertor_10_30 extends VersionConvertor_Base {
     throw new FHIRException("Unknown resource " + src.fhirType());
   }
 
-  public static org.hl7.fhir.dstu2.model.Resource convertResource(org.hl7.fhir.dstu3.model.Resource src, VersionConvertorAdvisor30 advisor) throws FHIRException {
+  public static org.hl7.fhir.dstu2.model.Resource convertResource(org.hl7.fhir.dstu3.model.Resource src, BaseAdvisor_10_30 advisor) throws FHIRException {
     if (src == null || src.isEmpty()) return null;
     if (src instanceof org.hl7.fhir.dstu3.model.Parameters)
       return Parameters10_30.convertParameters((org.hl7.fhir.dstu3.model.Parameters) src);

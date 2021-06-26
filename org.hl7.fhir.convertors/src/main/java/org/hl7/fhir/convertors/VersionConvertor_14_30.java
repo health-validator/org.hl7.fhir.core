@@ -8,6 +8,7 @@ import org.hl7.fhir.dstu3.model.ElementDefinition.ElementDefinitionSlicingDiscri
 import org.hl7.fhir.exceptions.FHIRException;
 import org.hl7.fhir.utilities.Utilities;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.stream.Collectors;
 
@@ -39,7 +40,7 @@ import java.util.stream.Collectors;
   POSSIBILITY OF SUCH DAMAGE.
  */
 
-public class VersionConvertor_14_30 extends VersionConvertor_Base {
+public class VersionConvertor_14_30 {
   static public void copyElement(org.hl7.fhir.dstu2016may.model.Element src, org.hl7.fhir.dstu3.model.Element tgt, String... exemptExtensions) throws FHIRException {
     if (src.hasId()) tgt.setId(src.getId());
     for (org.hl7.fhir.dstu2016may.model.Extension e : src.getExtension()) {

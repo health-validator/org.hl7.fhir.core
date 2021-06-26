@@ -4,7 +4,6 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import org.hl7.fhir.convertors.*;
-import org.hl7.fhir.convertors.advisors.VersionConvertorAdvisor50;
 import org.hl7.fhir.convertors.txClient.TerminologyClientFactory;
 import org.hl7.fhir.exceptions.DefinitionException;
 import org.hl7.fhir.exceptions.FHIRException;
@@ -21,11 +20,13 @@ import org.hl7.fhir.r5.formats.IParser.OutputStyle;
 import org.hl7.fhir.r5.formats.JsonParser;
 import org.hl7.fhir.r5.formats.XmlParser;
 import org.hl7.fhir.r5.model.*;
+import org.hl7.fhir.r5.model.Bundle.BundleEntryComponent;
 import org.hl7.fhir.r5.renderers.RendererFactory;
 import org.hl7.fhir.r5.renderers.utils.RenderingContext;
 import org.hl7.fhir.r5.renderers.utils.RenderingContext.ResourceRendererMode;
 import org.hl7.fhir.r5.utils.EOperationOutcome;
 import org.hl7.fhir.r5.utils.FHIRPathEngine;
+import org.hl7.fhir.r5.utils.IResourceValidator;
 import org.hl7.fhir.r5.utils.IResourceValidator.*;
 import org.hl7.fhir.r5.utils.ToolingExtensions;
 import org.hl7.fhir.r5.utils.structuremap.StructureMapUtilities;
@@ -127,6 +128,7 @@ public class ValidationEngine implements IValidatorResourceFetcher, IPackageInst
   @Getter @Setter private Map<String, byte[]> binaries = new HashMap<>();
   @Getter @Setter private boolean doNative;
   @Getter @Setter private boolean noInvariantChecks;
+  @Getter @Setter private boolean wantInvariantInMessage;
   @Getter @Setter private boolean hintAboutNonMustSupport;
   @Getter @Setter private boolean anyExtensionsAllowed = false;
   @Getter @Setter private String version;
@@ -140,6 +142,7 @@ public class ValidationEngine implements IValidatorResourceFetcher, IPackageInst
   @Getter @Setter private boolean noExtensibleBindingMessages;
   @Getter @Setter private boolean securityChecks;
   @Getter @Setter private boolean crumbTrails;
+  @Getter @Setter private boolean allowExampleUrls;
   @Getter @Setter private Locale locale;
   @Getter @Setter private List<ImplementationGuide> igs = new ArrayList<>();
   @Getter @Setter private boolean showTimes;
@@ -415,12 +418,25 @@ public class ValidationEngine implements IValidatorResourceFetcher, IPackageInst
     return Manager.build(getContext(), structureDefinition);
   }
 
-  public DomainResource generate(String source, String version) throws FHIRException, IOException, EOperationOutcome {
+  public Resource generate(String source, String version) throws FHIRException, IOException, EOperationOutcome {
     Content cnt = igLoader.loadContent(source, "validate", false);
     Resource res = igLoader.loadResourceByVersion(version, cnt.focus, source);
     RenderingContext rc = new RenderingContext(context, null, null, "http://hl7.org/fhir", "", null, ResourceRendererMode.RESOURCE);
-    RendererFactory.factory(res, rc).render((DomainResource) res);
-    return (DomainResource) res;
+    genResource(res, rc);
+    return (Resource) res;
+  }
+
+  public void genResource(Resource res, RenderingContext rc) throws IOException, EOperationOutcome {
+    if (res instanceof Bundle) {
+      Bundle bnd = (Bundle) res;
+      for (BundleEntryComponent be : bnd.getEntry()) {
+        if (be.hasResource()) {
+          genResource(be.getResource(), rc);
+        }
+      }
+    } else {
+      RendererFactory.factory(res, rc).render((DomainResource) res);
+    }
   }
 
   public void convert(String source, String output) throws FHIRException, IOException {
@@ -463,11 +479,16 @@ public class ValidationEngine implements IValidatorResourceFetcher, IPackageInst
     validator.setHintAboutNonMustSupport(hintAboutNonMustSupport);
     validator.setAnyExtensionsAllowed(anyExtensionsAllowed);
     validator.setNoInvariantChecks(isNoInvariantChecks());
+    validator.setWantInvariantInMessage(isWantInvariantInMessage());
     validator.setValidationLanguage(language);
+    if (language != null) {
+      validator.getContext().setValidationMessageLanguage(Locale.forLanguageTag(language));
+    }
     validator.setAssumeValidRestReferences(assumeValidRestReferences);
     validator.setNoExtensibleWarnings(noExtensibleBindingMessages);
     validator.setSecurityChecks(securityChecks);
     validator.setCrumbTrails(crumbTrails);
+    validator.setAllowExamples(allowExampleUrls);
     validator.getContext().setLocale(locale);
     validator.setFetcher(this);
     validator.getImplementationGuides().addAll(igs);
@@ -527,7 +548,7 @@ public class ValidationEngine implements IValidatorResourceFetcher, IPackageInst
     if (fn.endsWith(".html") || fn.endsWith(".htm") && r instanceof DomainResource)
       new XhtmlComposer(XhtmlComposer.HTML, true).compose(s, ((DomainResource) r).getText().getDiv());
     else if (version.startsWith("3.0")) {
-      org.hl7.fhir.dstu3.model.Resource res = VersionConvertor_30_50.convertResource(r, false);
+      org.hl7.fhir.dstu3.model.Resource res = VersionConvertor_30_50.convertResource(r);
       if (fn.endsWith(".xml") && !fn.endsWith("template.xml"))
         new org.hl7.fhir.dstu3.formats.XmlParser().setOutputStyle(org.hl7.fhir.dstu3.formats.IParser.OutputStyle.PRETTY).compose(s, res);
       else if (fn.endsWith(".json") && !fn.endsWith("template.json"))
@@ -555,8 +576,7 @@ public class ValidationEngine implements IValidatorResourceFetcher, IPackageInst
       else
         throw new FHIRException("Unsupported format for " + fn);
     } else if (version.startsWith("1.0")) {
-      VersionConvertorAdvisor50 advisor = new org.hl7.fhir.convertors.misc.IGR2ConvertorAdvisor5();
-      org.hl7.fhir.dstu2.model.Resource res = VersionConvertor_10_50.convertResource(r, advisor);
+      org.hl7.fhir.dstu2.model.Resource res = VersionConvertor_10_50.convertResource(r, new org.hl7.fhir.convertors.misc.IGR2ConvertorAdvisor5());
       if (fn.endsWith(".xml") && !fn.endsWith("template.xml"))
         new org.hl7.fhir.dstu2.formats.JsonParser().setOutputStyle(org.hl7.fhir.dstu2.formats.IParser.OutputStyle.PRETTY).compose(s, res);
       else if (fn.endsWith(".json") && !fn.endsWith("template.json"))
@@ -661,7 +681,7 @@ public class ValidationEngine implements IValidatorResourceFetcher, IPackageInst
   }
 
   @Override
-  public byte[] fetchRaw(String source) throws IOException {
+  public byte[] fetchRaw(IResourceValidator validator, String source) throws IOException {
     URL url = new URL(source);
     URLConnection c = url.openConnection();
     return TextFile.streamToBytes(c.getInputStream());
@@ -678,19 +698,19 @@ public class ValidationEngine implements IValidatorResourceFetcher, IPackageInst
   }
 
   @Override
-  public Element fetch(Object appContext, String url) throws FHIRException, IOException {
+  public Element fetch(IResourceValidator validator, Object appContext, String url) throws FHIRException, IOException {
     Resource resource = context.fetchResource(Resource.class, url);
     if (resource != null) {
       return new ObjectConverter(context).convert(resource);
     }
     if (fetcher != null) {
-      return fetcher.fetch(appContext, url);
+      return fetcher.fetch(validator, appContext, url);
     }
     return null;
   }
 
   @Override
-  public ReferenceValidationPolicy validationPolicy(Object appContext, String path, String url) {
+  public ReferenceValidationPolicy validationPolicy(IResourceValidator validator, Object appContext, String path, String url) {
     Resource resource = context.fetchResource(StructureDefinition.class, url);
     if (resource != null) {
       return ReferenceValidationPolicy.CHECK_VALID;
@@ -698,30 +718,32 @@ public class ValidationEngine implements IValidatorResourceFetcher, IPackageInst
     if (!(url.contains("hl7.org") || url.contains("fhir.org"))) {
       return ReferenceValidationPolicy.IGNORE;
     } else if (fetcher != null) {
-      return fetcher.validationPolicy(appContext, path, url);
+      return fetcher.validationPolicy(validator, appContext, path, url);
     } else {
       return ReferenceValidationPolicy.CHECK_EXISTS_AND_TYPE;
     }
   }
 
   @Override
-  public boolean resolveURL(Object appContext, String path, String url, String type) throws IOException, FHIRException {
+  public boolean resolveURL(IResourceValidator validator, Object appContext, String path, String url, String type) throws IOException, FHIRException {
     if (!url.startsWith("http://") && !url.startsWith("https://")) { // ignore these
       return true;
     }
     if (context.fetchResource(Resource.class, url) != null)
       return true;
-    if (Utilities.existsInList(url, "http://hl7.org/fhir/sid/us-ssn", "http://hl7.org/fhir/sid/cvx", "http://hl7.org/fhir/sid/ndc", "http://hl7.org/fhir/sid/us-npi", "http://hl7.org/fhir/sid/icd-10",
-      "http://hl7.org/fhir/sid/icd-10-vn", "http://hl7.org/fhir/sid/icd-10-cm", "http://hl7.org/fhir/sid/icd-9-cm", "http://hl7.org/fhir/w5", "http://hl7.org/fhir/fivews",
-      "http://hl7.org/fhir/workflow", "http://hl7.org/fhir/ConsentPolicy/opt-out", "http://hl7.org/fhir/ConsentPolicy/opt-in")) {
+    if (SIDUtilities.isKnownSID(url) || 
+        Utilities.existsInList(url, "http://hl7.org/fhir/w5", "http://hl7.org/fhir/fivews", "http://hl7.org/fhir/workflow", "http://hl7.org/fhir/ConsentPolicy/opt-out", "http://hl7.org/fhir/ConsentPolicy/opt-in")) {
       return true;
     }
     if (Utilities.existsInList(url, "http://loinc.org", "http://unitsofmeasure.org", "http://snomed.info/sct")) {
       return true;
     }
+    if (url.contains("example.org") || url.contains("acme.com")) {
+      return false; // todo... how to access settings from here?
+    }
     if (fetcher != null) {
       try {
-        return fetcher.resolveURL(appContext, path, url, type);
+        return fetcher.resolveURL(validator, appContext, path, url, type);
       } catch (Exception e) {
         return false;
       }
@@ -730,7 +752,7 @@ public class ValidationEngine implements IValidatorResourceFetcher, IPackageInst
   }
 
   @Override
-  public CanonicalResource fetchCanonicalResource(String url) throws URISyntaxException {
+  public CanonicalResource fetchCanonicalResource(IResourceValidator validator, String url) throws URISyntaxException {
     Resource res = context.fetchResource(Resource.class, url);
     if (res != null) {
       if (res instanceof CanonicalResource) {
@@ -739,11 +761,11 @@ public class ValidationEngine implements IValidatorResourceFetcher, IPackageInst
         return null;
       }
     }
-    return fetcher != null ? fetcher.fetchCanonicalResource(url) : null;
+    return fetcher != null ? fetcher.fetchCanonicalResource(validator, url) : null;
   }
 
   @Override
-  public boolean fetchesCanonicalResource(String url) {
-    return fetcher != null && fetcher.fetchesCanonicalResource(url);
+  public boolean fetchesCanonicalResource(IResourceValidator validator, String url) {
+    return fetcher != null && fetcher.fetchesCanonicalResource(validator, url);
   }
 }

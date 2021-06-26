@@ -189,6 +189,7 @@ public class I18nConstants {
   public static final String INTERNAL_ERROR___TYPE_NOT_KNOWN_ = "Internal_error___type_not_known_";
   public static final String INTERNAL_INT_BAD_TYPE = "Internal_INT_Bad_Type";
   public static final String INTERNAL_RECURSION_DETECTION_FIND_LOOP_PATH_RECURSION____CHECK_PATHS_ARE_VALID_FOR_PATH_ = "Internal_recursion_detection_find_loop_path_recursion____check_paths_are_valid_for_path_";
+  public static final String INV_FAILED = "INV_FAILED";
   public static final String INVALID_SLICING__THERE_IS_MORE_THAN_ONE_TYPE_SLICE_AT__BUT_ONE_OF_THEM__HAS_MIN__1_SO_THE_OTHER_SLICES_CANNOT_EXIST = "Invalid_slicing__there_is_more_than_one_type_slice_at__but_one_of_them__has_min__1_so_the_other_slices_cannot_exist";
   public static final String LANGUAGE_XHTML_LANG_DIFFERENT1 = "Language_XHTML_Lang_Different1";
   public static final String LANGUAGE_XHTML_LANG_DIFFERENT2 = "Language_XHTML_Lang_Different2";
@@ -273,6 +274,7 @@ public class I18nConstants {
   public static final String OBJECT_MUST_HAVE_SOME_CONTENT = "Object_must_have_some_content";
   public static final String PACKAGE_VERSION_MISMATCH = "PACKAGE_VERSION_MISMATCH";
   public static final String PARSER_TYPE__NOT_SUPPORTED = "Parser_Type__not_supported";
+  public static final String PATTERN_CHECK_STRING = "PATTERN_CHECK_STRING";
   public static final String PROBLEM_EVALUATING_SLICING_EXPRESSION_FOR_ELEMENT_IN_PROFILE__PATH__FHIRPATH___ = "Problem_evaluating_slicing_expression_for_element_in_profile__path__fhirPath___";
   public static final String PROBLEM_PROCESSING_EXPRESSION__IN_PROFILE__PATH__ = "Problem_processing_expression__in_profile__path__";
   public static final String PROFILE_BASED_DISCRIMINATORS_MUST_HAVE_A_TYPE_WITH_A_PROFILE__IN_PROFILE_ = "Profile_based_discriminators_must_have_a_type_with_a_profile__in_profile_";
@@ -499,6 +501,7 @@ public class I18nConstants {
   public static final String TYPE_SPECIFIC_CHECKS_DT_URI_UUID = "Type_Specific_Checks_DT_URI_UUID";
   public static final String TYPE_SPECIFIC_CHECKS_DT_URI_WS = "Type_Specific_Checks_DT_URI_WS";
   public static final String TYPE_SPECIFIC_CHECKS_DT_URL_RESOLVE = "Type_Specific_Checks_DT_URL_Resolve";
+  public static final String TYPE_SPECIFIC_CHECKS_DT_URL_EXAMPLE = "TYPE_SPECIFIC_CHECKS_DT_URL_EXAMPLE";
   public static final String TYPE_SPECIFIC_CHECKS_DT_CANONICAL_TYPE = "TYPE_SPECIFIC_CHECKS_DT_CANONICAL_TYPE";
   public static final String TYPE_SPECIFIC_CHECKS_DT_CANONICAL_RESOLVE = "TYPE_SPECIFIC_CHECKS_DT_CANONICAL_RESOLVE";
   public static final String TYPE_SPECIFIC_CHECKS_DT_UUID_STRAT = "Type_Specific_Checks_DT_UUID_Strat";
@@ -580,6 +583,7 @@ public class I18nConstants {
   public static final String VALIDATION_VAL_PROFILE_NOTSLICE = "Validation_VAL_Profile_NotSlice";
   public static final String VALIDATION_VAL_PROFILE_NOTYPE = "Validation_VAL_Profile_NoType";
   public static final String VALIDATION_VAL_PROFILE_OUTOFORDER = "Validation_VAL_Profile_OutOfOrder";
+  public static final String VALIDATION_VAL_PROFILE_SIGNPOST_BASE = "VALIDATION_VAL_PROFILE_SIGNPOST_BASE";
   public static final String VALIDATION_VAL_PROFILE_SIGNPOST = "VALIDATION_VAL_PROFILE_SIGNPOST";
   public static final String VALIDATION_VAL_PROFILE_SIGNPOST_GLOBAL = "VALIDATION_VAL_PROFILE_SIGNPOST_GLOBAL";
   public static final String VALIDATION_VAL_PROFILE_SIGNPOST_META = "VALIDATION_VAL_PROFILE_SIGNPOST_META";

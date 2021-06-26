@@ -1,5 +1,9 @@
 package org.hl7.fhir.r5.conformance;
 
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+
 /*
   Copyright (c) 2011+, HL7, Inc.
   All rights reserved.
@@ -658,7 +662,7 @@ public class ProfileUtilities extends TranslatingUtilities {
         }
       }
       
-      if (!derived.getSnapshot().getElementFirstRep().getType().isEmpty())
+      if (derived.getKind() != StructureDefinitionKind.LOGICAL && !derived.getSnapshot().getElementFirstRep().getType().isEmpty())
         throw new Error(context.formatMessage(I18nConstants.TYPE_ON_FIRST_SNAPSHOT_ELEMENT_FOR__IN__FROM_, derived.getSnapshot().getElementFirstRep().getPath(), derived.getUrl(), base.getUrl()));
       updateMaps(base, derived);
 
@@ -781,7 +785,7 @@ public class ProfileUtilities extends TranslatingUtilities {
     if (derived.hasDifferential() && !derived.getDifferential().getElementFirstRep().getPath().contains(".") && !derived.getDifferential().getElementFirstRep().getType().isEmpty()) {
       if (wantFixDifferentialFirstElementType && typeMatchesAncestor(derived.getDifferential().getElementFirstRep().getType(), derived.getBaseDefinition())) {
         derived.getDifferential().getElementFirstRep().getType().clear();
-      } else {
+      } else if (derived.getKind() != StructureDefinitionKind.LOGICAL) {
         throw new Error(context.formatMessage(I18nConstants.TYPE_ON_FIRST_DIFFERENTIAL_ELEMENT));
       }
     }
@@ -2226,7 +2230,8 @@ public class ProfileUtilities extends TranslatingUtilities {
 
   private boolean checkExtensionDoco(ElementDefinition base) {
     // see task 3970. For an extension, there's no point copying across all the underlying definitional stuff
-    boolean isExtension = base.getPath().equals("Extension") || base.getPath().endsWith(".extension") || base.getPath().endsWith(".modifierExtension");
+    boolean isExtension = (base.getPath().equals("Extension") || base.getPath().endsWith(".extension") || base.getPath().endsWith(".modifierExtension")) &&
+          (!base.hasBase() || !"II.extension".equals(base.getBase().getPath()));
     if (isExtension) {
       base.setDefinition("An Extension");
       base.setShort("Extension");
@@ -2999,10 +3004,10 @@ public class ProfileUtilities extends TranslatingUtilities {
       }
     }
     if (dest.hasFixed()) {
-      checkTypeOk(dest, dest.getFixed().fhirType());
+      checkTypeOk(dest, dest.getFixed().fhirType(), srcSD);
     }
     if (dest.hasPattern()) {
-      checkTypeOk(dest, dest.getPattern().fhirType());
+      checkTypeOk(dest, dest.getPattern().fhirType(), srcSD);
     }
   }
 
@@ -3067,14 +3072,20 @@ public class ProfileUtilities extends TranslatingUtilities {
   }
 
 
-  public void checkTypeOk(ElementDefinition dest, String ft) {
+  public void checkTypeOk(ElementDefinition dest, String ft, StructureDefinition sd) {
     boolean ok = false;
     Set<String> types = new HashSet<>();
-    for (TypeRefComponent t : dest.getType()) {
-      if (t.hasCode()) {
-        types.add(t.getWorkingCode());
+    if (dest.getPath().contains(".")) {
+      for (TypeRefComponent t : dest.getType()) {
+        if (t.hasCode()) {
+          types.add(t.getWorkingCode());
+        }
+        ok = ft.equals(t.getWorkingCode());
       }
-      ok = ft.equals(t.getWorkingCode());
+    } else {
+      types.add(sd.getType());
+      ok = ft.equals(sd.getType());
+
     }
     if (!ok) {
       messages.add(new ValidationMessage(Source.InstanceValidator, IssueType.CONFLICT, dest.getId(), "The fixed value has type '"+ft+"' which is not valid (valid "+Utilities.pluralize("type", dest.getType().size())+": "+types.toString()+")", IssueSeverity.ERROR));
@@ -3084,6 +3095,10 @@ public class ProfileUtilities extends TranslatingUtilities {
   private boolean hasBindableType(ElementDefinition ed) {
     for (TypeRefComponent tr : ed.getType()) {
       if (Utilities.existsInList(tr.getWorkingCode(), "Coding", "CodeableConcept", "Quantity", "uri", "string", "code")) {
+        return true;
+      }
+      StructureDefinition sd = context.fetchTypeDefinition(tr.getCode());
+      if (sd != null && sd.hasExtension(ToolingExtensions.EXT_BINDING_STYLE)) {
         return true;
       }
     }
@@ -4044,6 +4059,9 @@ public class ProfileUtilities extends TranslatingUtilities {
       hint = checkAdd(hint, (hasDef && element.hasSliceName() ? ": " : ""));
       hint = checkAdd(hint, !hasDef ? null : gt(element.getDefinitionElement()));
     }
+    if (element.hasSlicing()) {
+      sName = "Slices for "+sName;
+    }
     Cell left = gen.new Cell(null, ref, sName, hint, null);
     row.getCells().add(left);
     return left;
@@ -4102,9 +4120,7 @@ public class ProfileUtilities extends TranslatingUtilities {
       }
     } else {
       res.add(genCardinality(gen, element, row, hasDef, used, null));
-      if (element.hasSlicing())
-        res.add(addCell(row, gen.new Cell(null, corePath+"profiling.html#slicing", "(Slice Definition)", null, null)));
-      else if (hasDef && !"0".equals(element.getMax()) && typesRow == null)
+      if (hasDef && !"0".equals(element.getMax()) && typesRow == null)
         res.add(genTypes(gen, row, element, profileBaseFileName, profile, corePath, imagePath, root, mustSupport));
       else
         res.add(addCell(row, gen.new Cell()));
@@ -4495,6 +4511,31 @@ public class ProfileUtilities extends TranslatingUtilities {
           c.getPieces().add(gen.new Piece(null, translate("sd.table", "Slice")+": ", null).addStyle("font-weight:bold"));
           c.getPieces().add(gen.new Piece(null, describeSlice(definition.getSlicing()), null));
         }
+        if (!definition.getPath().contains(".") && ToolingExtensions.hasExtension(profile, ToolingExtensions.EXT_BINDING_STYLE)) {
+          if (!c.getPieces().isEmpty()) { c.addPiece(gen.new Piece("br")); }
+          c.getPieces().add(gen.new Piece(null, translate("sd.table", "Binding")+": ", null).addStyle("font-weight:bold"));
+          c.getPieces().add(gen.new Piece(null, "This type can be bound to a value set using the ", null));
+          c.getPieces().add(gen.new Piece(null, ToolingExtensions.readStringExtension(profile, ToolingExtensions.EXT_BINDING_STYLE), null));
+          c.getPieces().add(gen.new Piece(null, " binding style", null));            
+          
+        }
+        if (definition.hasExtension(ToolingExtensions.EXT_XML_NAME)) {
+          if (!c.getPieces().isEmpty()) { c.addPiece(gen.new Piece("br")); }
+          if (definition.hasExtension(ToolingExtensions.EXT_XML_NAMESPACE)) {
+            c.getPieces().add(gen.new Piece(null, translate("sd.table", "XML")+": ", null).addStyle("font-weight:bold"));
+            c.getPieces().add(gen.new Piece(null, definition.getExtensionString(ToolingExtensions.EXT_XML_NAME), null));
+            c.getPieces().add(gen.new Piece(null, " (", null));
+            c.getPieces().add(gen.new Piece(null, definition.getExtensionString(ToolingExtensions.EXT_XML_NAMESPACE), null));
+            c.getPieces().add(gen.new Piece(null, ")", null));            
+          } else {
+            c.getPieces().add(gen.new Piece(null, translate("sd.table", "XML Element Name")+": ", null).addStyle("font-weight:bold"));
+            c.getPieces().add(gen.new Piece(null, definition.getExtensionString(ToolingExtensions.EXT_XML_NAME), null));
+          }            
+        } else if (definition.hasExtension(ToolingExtensions.EXT_XML_NAMESPACE)) {
+          if (!c.getPieces().isEmpty()) { c.addPiece(gen.new Piece("br")); }
+          c.getPieces().add(gen.new Piece(null, translate("sd.table", "XML Namespace")+": ", null).addStyle("font-weight:bold"));
+          c.getPieces().add(gen.new Piece(null, definition.getExtensionString(ToolingExtensions.EXT_XML_NAMESPACE), null));          
+        }
         if (definition != null) {
           ElementDefinitionBindingComponent binding = null;
           if (valueDefn != null && valueDefn.hasBinding() && !valueDefn.getBinding().isEmpty())
@@ -4741,8 +4782,9 @@ public class ProfileUtilities extends TranslatingUtilities {
               String s = b.primitiveValue();
               // ok. let's see if we can find a relevant link for this
               String link = null;
-              if (Utilities.isAbsoluteUrl(s))
+              if (Utilities.isAbsoluteUrl(s)) {
                 link = pkp.getLinkForUrl(corePath, s);
+              }
               c.getPieces().add(gen.new Piece(link, s, null).addStyle("color: darkgreen"));
             } else {
               c = gen.new Cell();

@@ -1,5 +1,7 @@
 package org.hl7.fhir.convertors;
 
+import org.apache.commons.lang3.StringUtils;
+import org.hl7.fhir.convertors.advisors.impl.BaseAdvisor_14_50;
 import org.hl7.fhir.convertors.conv14_50.*;
 import org.hl7.fhir.dstu2016may.model.CodeableConcept;
 import org.hl7.fhir.dstu2016may.model.Reference;
@@ -11,6 +13,7 @@ import org.hl7.fhir.r5.model.ElementDefinition.ElementDefinitionSlicingDiscrimin
 import org.hl7.fhir.utilities.Utilities;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -43,7 +46,7 @@ import java.util.stream.Collectors;
   POSSIBILITY OF SUCH DAMAGE.
  */
 
-public class VersionConvertor_14_50 extends VersionConvertor_Base {
+public class VersionConvertor_14_50 {
   static public List<String> CANONICAL_URLS = new ArrayList<String>();
 
   static {
@@ -1392,6 +1395,22 @@ public class VersionConvertor_14_50 extends VersionConvertor_Base {
     return tgt;
   }
 
+  /*
+   * This process deals with the fact that 'exists' slicing didn't have a mechanism to flag it in 2016May.
+   * (Pattern and profile both had '@' flags in the discriminator to distinguish this, but exists did not.)
+   * 'Exists' can thus only be determined by looking at the available slices - and checking to see that there
+   * are exactly two slices, one which is mandatory and one which is prohibited.  We need to do that check
+   * at the level where the slices are defined, rather than only inside the 'slicing' element where we don't
+   * have access to the slices themselves.
+   *
+   * This process checks to see if we have a 'value' discriminator (i.e. no '@') and if so, checks for all
+   * matching slices.  If there are exactly two and one's required and one's prohibited, then it sets a flag
+   * so that the converter will declare a discriminator.type of 'exists'.
+   *
+   * Note that we only need complex processing on the R2B -> newer release, not on the reverse.  On the reverse,
+   * we just strip the discriminator type.  What slices exist is still the same.  In theory, that means that the
+   * exists type is unnecessary, but it's far more efficient (and clear) to have it.
+   */
   public static org.hl7.fhir.r5.model.ElementDefinition.ElementDefinitionSlicingComponent convertElementDefinitionSlicingComponent(org.hl7.fhir.dstu2016may.model.ElementDefinition.ElementDefinitionSlicingComponent src, List<org.hl7.fhir.dstu2016may.model.ElementDefinition> context, int pos) throws FHIRException {
     if (src == null || src.isEmpty()) return null;
     org.hl7.fhir.r5.model.ElementDefinition.ElementDefinitionSlicingComponent tgt = new org.hl7.fhir.r5.model.ElementDefinition.ElementDefinitionSlicingComponent();
@@ -1403,14 +1422,23 @@ public class VersionConvertor_14_50 extends VersionConvertor_Base {
         int slices = 0;
         boolean existsSlicePresent = false;
         boolean notExistsSlicePresent = false;
+        String url = null;
         String existsPath = slicingElement.getPath() + "." + t.asStringValue();
+        if (existsPath.contains(".extension(")) {
+          String suffix = StringUtils.substringAfter(existsPath,"(").substring(1);
+          existsPath = StringUtils.substringBefore(existsPath,"(");
+          suffix = StringUtils.substringBefore(suffix, ")");
+          url = suffix.substring(0,suffix.length()-1);
+        }
         for (int i = pos + 1; i < context.size(); i++) {
           org.hl7.fhir.dstu2016may.model.ElementDefinition e = context.get(i);
           if (e.getPath().equals(slicingElement.getPath())) slices++;
           else if (!e.getPath().startsWith(slicingElement.getPath() + ".")) break;
           else if (e.getPath().equals(existsPath)) {
-            if (e.hasMin() && e.getMin() > 0 && !e.hasFixed()) existsSlicePresent = true;
-            else if (e.hasMax() && e.getMax().equals("0")) notExistsSlicePresent = true;
+            if (url==null || (e.getType().get(0).hasProfile() && e.getType().get(0).getProfile().get(0).equals(url))) {
+              if (e.hasMin() && e.getMin() > 0 && !e.hasFixed()) existsSlicePresent = true;
+              else if (e.hasMax() && e.getMax().equals("0")) notExistsSlicePresent = true;
+            }
           }
         }
         isExists = (slices == 2 && existsSlicePresent && notExistsSlicePresent) || (slices == 1 && existsSlicePresent != notExistsSlicePresent);
@@ -2425,23 +2453,53 @@ public class VersionConvertor_14_50 extends VersionConvertor_Base {
   }
 
   static public void copyDomainResource(org.hl7.fhir.dstu2016may.model.DomainResource src, org.hl7.fhir.r5.model.DomainResource tgt, String... extensionsToIgnore) throws FHIRException {
+    copyDomainResource(src, tgt, new BaseAdvisor_14_50(), extensionsToIgnore);
+  }
+
+  static public void copyDomainResource(org.hl7.fhir.dstu2016may.model.DomainResource src, org.hl7.fhir.r5.model.DomainResource tgt, BaseAdvisor_14_50 advisor, String... extensionsToIgnore) throws FHIRException {
     copyResource(src, tgt);
-    tgt.setText(convertNarrative(src.getText()));
-    for (org.hl7.fhir.dstu2016may.model.Resource t : src.getContained()) tgt.addContained(convertResource(t));
-    for (org.hl7.fhir.dstu2016may.model.Extension t : src.getExtension())
-      if (!isExemptExtension(t.getUrl(), extensionsToIgnore)) tgt.addExtension(convertExtension(t));
-    for (org.hl7.fhir.dstu2016may.model.Extension t : src.getModifierExtension())
-      if (!isExemptExtension(t.getUrl(), extensionsToIgnore)) tgt.addModifierExtension(convertExtension(t));
+    if (src.hasText()) tgt.setText(convertNarrative(src.getText()));
+    src.getContained().stream()
+      .map(resource -> convertResource(resource, advisor))
+      .forEach(tgt::addContained);
+    src.getExtension().forEach(extension -> {
+      if (advisor.useAdvisorForExtension("", extension)) {//TODO add path
+        org.hl7.fhir.r5.model.Extension convertExtension = new org.hl7.fhir.r5.model.Extension();
+        advisor.handleExtension("", extension, convertExtension);//TODO add path
+        tgt.addExtension(convertExtension);
+      } else if (!advisor.ignoreExtension("", extension) && !Arrays.asList(extensionsToIgnore).contains(extension.getUrl())) {//TODO add path
+        tgt.addExtension(convertExtension(extension));
+      }
+    });
+    src.getModifierExtension().stream()
+      .filter(extension -> !advisor.ignoreExtension("", extension) && !Arrays.asList(extensionsToIgnore).contains(extension.getUrl()))//TODO add path
+      .map(extension -> convertExtension(extension))
+      .forEach(tgt::addModifierExtension);
   }
 
   static public void copyDomainResource(org.hl7.fhir.r5.model.DomainResource src, org.hl7.fhir.dstu2016may.model.DomainResource tgt, String... extensionsToIgnore) throws FHIRException {
+    copyDomainResource(src, tgt, new BaseAdvisor_14_50(), extensionsToIgnore);
+  }
+
+  static public void copyDomainResource(org.hl7.fhir.r5.model.DomainResource src, org.hl7.fhir.dstu2016may.model.DomainResource tgt, BaseAdvisor_14_50 advisor, String... extensionsToIgnore) throws FHIRException {
     copyResource(src, tgt);
     if (src.hasText()) tgt.setText(convertNarrative(src.getText()));
-    for (org.hl7.fhir.r5.model.Resource t : src.getContained()) tgt.addContained(convertResource(t));
-    for (org.hl7.fhir.r5.model.Extension t : src.getExtension())
-      if (!isExemptExtension(t.getUrl(), extensionsToIgnore)) tgt.addExtension(convertExtension(t));
-    for (org.hl7.fhir.r5.model.Extension t : src.getModifierExtension())
-      if (!isExemptExtension(t.getUrl(), extensionsToIgnore)) tgt.addModifierExtension(convertExtension(t));
+    src.getContained().stream()
+      .map(resource -> convertResource(resource, advisor))
+      .forEach(tgt::addContained);
+    src.getExtension().forEach(extension -> {
+      if (advisor.useAdvisorForExtension("", extension)) {//TODO add path
+        org.hl7.fhir.dstu2016may.model.Extension convertExtension = new org.hl7.fhir.dstu2016may.model.Extension();
+        advisor.handleExtension("", extension, convertExtension);//TODO add path
+        tgt.addExtension(convertExtension);
+      } else if (!advisor.ignoreExtension("", extension) && !Arrays.asList(extensionsToIgnore).contains(extension.getUrl())) {//TODO add path
+        tgt.addExtension(convertExtension(extension));
+      }
+    });
+    src.getModifierExtension().stream()
+      .filter(extension -> !advisor.ignoreExtension("", extension) && !Arrays.asList(extensionsToIgnore).contains(extension.getUrl()))//TODO add path
+      .map(VersionConvertor_14_50::convertExtension)
+      .forEach(tgt::addModifierExtension);
   }
 
   static public void copyResource(org.hl7.fhir.dstu2016may.model.Resource src, org.hl7.fhir.r5.model.Resource tgt) throws FHIRException {
@@ -2673,6 +2731,10 @@ public class VersionConvertor_14_50 extends VersionConvertor_Base {
   }
 
   public static org.hl7.fhir.r5.model.Resource convertResource(org.hl7.fhir.dstu2016may.model.Resource src) throws FHIRException {
+    return convertResource(src, new BaseAdvisor_14_50());
+  }
+
+  public static org.hl7.fhir.r5.model.Resource convertResource(org.hl7.fhir.dstu2016may.model.Resource src, BaseAdvisor_14_50 advisor) throws FHIRException {
     if (src == null || src.isEmpty()) return null;
     if (src instanceof org.hl7.fhir.dstu2016may.model.Parameters)
       return Parameters14_50.convertParameters((org.hl7.fhir.dstu2016may.model.Parameters) src);
@@ -2708,10 +2770,18 @@ public class VersionConvertor_14_50 extends VersionConvertor_Base {
       return StructureMap14_50.convertStructureMap((org.hl7.fhir.dstu2016may.model.StructureMap) src);
     if (src instanceof org.hl7.fhir.dstu2016may.model.ValueSet)
       return ValueSet14_50.convertValueSet((org.hl7.fhir.dstu2016may.model.ValueSet) src);
-    throw new FHIRException("Unknown resource " + src.fhirType());
+    if (advisor.failFastOnNullOrUnknownEntry()) {
+      throw new FHIRException("Unknown resource " + src.fhirType());
+    } else {
+      return null;
+    }
   }
 
   public static org.hl7.fhir.dstu2016may.model.Resource convertResource(org.hl7.fhir.r5.model.Resource src) throws FHIRException {
+    return convertResource(src, new BaseAdvisor_14_50());
+  }
+
+  public static org.hl7.fhir.dstu2016may.model.Resource convertResource(org.hl7.fhir.r5.model.Resource src, BaseAdvisor_14_50 advisor) throws FHIRException {
     if (src == null || src.isEmpty()) return null;
     if (src instanceof org.hl7.fhir.r5.model.Parameters)
       return Parameters14_50.convertParameters((org.hl7.fhir.r5.model.Parameters) src);
@@ -2745,7 +2815,11 @@ public class VersionConvertor_14_50 extends VersionConvertor_Base {
       return StructureMap14_50.convertStructureMap((org.hl7.fhir.r5.model.StructureMap) src);
     if (src instanceof org.hl7.fhir.r5.model.ValueSet)
       return ValueSet14_50.convertValueSet((org.hl7.fhir.r5.model.ValueSet) src);
-    throw new FHIRException("Unknown resource " + src.fhirType());
+    if (advisor.failFastOnNullOrUnknownEntry()) {
+      throw new FHIRException("Unknown resource " + src.fhirType());
+    } else {
+      return null;
+    }
   }
 
   public static boolean convertsResource(String rt) {

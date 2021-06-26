@@ -52,9 +52,13 @@ public class Params {
   public static final String RIGHT = "-right";
   public static final String NO_INTERNAL_CACHING = "-no-internal-caching";
   public static final String NO_EXTENSIBLE_BINDING_WARNINGS = "-no-extensible-binding-warnings";
+  public static final String NO_INVARIANTS = "-no-invariants";
+  public static final String WANT_INVARIANTS_IN_MESSAGES = "-want-invariants-in-messages";
   public static final String SECURITY_CHECKS = "-security-checks";
   public static final String CRUMB_TRAIL = "-crumb-trails";
+  public static final String VERBOSE = "-verbose";
   public static final String SHOW_TIMES = "-show-times";
+  public static final String ALLOW_EXAMPLE_URLS = "-allow-example-urls";
 
   /**
    * Checks the list of passed in params to see if it contains the passed in param.
@@ -156,6 +160,10 @@ public class Params {
         cliContext.setNoInternalCaching(true);
       } else if (args[i].equals(NO_EXTENSIBLE_BINDING_WARNINGS)) {
         cliContext.setNoExtensibleBindingMessages(true);
+      } else if (args[i].equals(NO_INVARIANTS)) {
+        cliContext.setNoInvariants(true);
+      } else if (args[i].equals(WANT_INVARIANTS_IN_MESSAGES)) {
+        cliContext.setWantInvariantsInMessages(true);
       } else if (args[i].equals(HINT_ABOUT_NON_MUST_SUPPORT)) {
         cliContext.setHintAboutNonMustSupport(true);
       } else if (args[i].equals(TO_VERSION)) {
@@ -176,6 +184,17 @@ public class Params {
         cliContext.setSecurityChecks(true);
       } else if (args[i].equals(CRUMB_TRAIL)) {
         cliContext.setCrumbTrails(true);
+      } else if (args[i].equals(VERBOSE)) {
+        cliContext.setCrumbTrails(true);
+      } else if (args[i].equals(ALLOW_EXAMPLE_URLS)) {
+        String bl = args[++i]; 
+        if ("true".equals(bl)) {
+          cliContext.setAllowExampleUrls(true);
+        } else if ("false".equals(bl)) {
+          cliContext.setAllowExampleUrls(false);
+        } else {
+          throw new Error("Value for "+ALLOW_EXAMPLE_URLS+" not understood: "+bl);          
+        }          
       } else if (args[i].equals(SHOW_TIMES)) {
         cliContext.setShowTimes(true);
       } else if (args[i].equals(SCAN)) {

@@ -245,9 +245,9 @@ public class StructureDefinitionValidator extends BaseValidator {
     StructureDefinition sd = context.fetchResource(StructureDefinition.class, p);
     if (code.equals("Reference")) {
       if (warning(errors, IssueType.EXCEPTION, stack.getLiteralPath(), sd != null, I18nConstants.SD_ED_TYPE_PROFILE_UNKNOWN, p)) {
-        String t = determineBaseType(sd);
+        StructureDefinition t = determineBaseType(sd);
         if (t == null) {
-          rule(errors, IssueType.EXCEPTION, stack.getLiteralPath(), code.equals(t), I18nConstants.SD_ED_TYPE_PROFILE_NOTYPE, p);
+          rule(errors, IssueType.EXCEPTION, stack.getLiteralPath(), false, I18nConstants.SD_ED_TYPE_PROFILE_NOTYPE, p);
         } else {
           rule(errors, IssueType.EXCEPTION, stack.getLiteralPath(), sd.getKind() == StructureDefinitionKind.RESOURCE, I18nConstants.SD_ED_TYPE_PROFILE_WRONG, p, t, code, path);
         }
@@ -257,9 +257,9 @@ public class StructureDefinitionValidator extends BaseValidator {
         sd = getXverExt(errors, stack.getLiteralPath(), profile, p);
       }
       if (warning(errors, IssueType.EXCEPTION, stack.getLiteralPath(), sd != null, I18nConstants.SD_ED_TYPE_PROFILE_UNKNOWN, p)) {
-        String t = determineBaseType(sd);
+        StructureDefinition t = determineBaseType(sd);
         if (t == null) {
-          rule(errors, IssueType.EXCEPTION, stack.getLiteralPath(), code.equals(t), I18nConstants.SD_ED_TYPE_PROFILE_NOTYPE, p);
+          rule(errors, IssueType.EXCEPTION, stack.getLiteralPath(), false, I18nConstants.SD_ED_TYPE_PROFILE_NOTYPE, p);
         } else {
           rule(errors, IssueType.EXCEPTION, stack.getLiteralPath(), isInstanceOf(t, code), I18nConstants.SD_ED_TYPE_PROFILE_WRONG, p, t, code, path);
         }
@@ -288,11 +288,11 @@ public class StructureDefinitionValidator extends BaseValidator {
       sd = getXverExt(errors, stack.getLiteralPath(), profile, p);
     }
     if (warning(errors, IssueType.EXCEPTION, stack.getLiteralPath(), sd != null, I18nConstants.SD_ED_TYPE_PROFILE_UNKNOWN, p)) {
-      String t = determineBaseType(sd);
+      StructureDefinition t = determineBaseType(sd);
       if (t == null) {
-        rule(errors, IssueType.EXCEPTION, stack.getLiteralPath(), code.equals(t), I18nConstants.SD_ED_TYPE_PROFILE_NOTYPE, p);
-      } else {
-        rule(errors, IssueType.EXCEPTION, stack.getLiteralPath(), isInstanceOf(t, code), I18nConstants.SD_ED_TYPE_PROFILE_WRONG, p, t, code, path);
+        rule(errors, IssueType.EXCEPTION, stack.getLiteralPath(), false, I18nConstants.SD_ED_TYPE_PROFILE_NOTYPE, p);
+      } else if (!isInstanceOf(t, code)) {
+        rule(errors, IssueType.EXCEPTION, stack.getLiteralPath(), false, I18nConstants.SD_ED_TYPE_PROFILE_WRONG, p, t, code, path);
       }
     }
   }
@@ -302,22 +302,22 @@ public class StructureDefinitionValidator extends BaseValidator {
     StructureDefinition sd = context.fetchResource(StructureDefinition.class, p);
     if (code.equals("Reference")) {
       if (warning(errors, IssueType.EXCEPTION, stack.getLiteralPath(), sd != null, I18nConstants.SD_ED_TYPE_PROFILE_UNKNOWN, p)) {
-        String t = determineBaseType(sd);
+        StructureDefinition t = determineBaseType(sd);
         if (t == null) {
-          rule(errors, IssueType.EXCEPTION, stack.getLiteralPath(), code.equals(t), I18nConstants.SD_ED_TYPE_PROFILE_NOTYPE, p);
+          rule(errors, IssueType.EXCEPTION, stack.getLiteralPath(), false, I18nConstants.SD_ED_TYPE_PROFILE_NOTYPE, p);
         } else {
           rule(errors, IssueType.EXCEPTION, stack.getLiteralPath(), sd.getKind() == StructureDefinitionKind.RESOURCE, I18nConstants.SD_ED_TYPE_PROFILE_WRONG_TARGET, p, t, code, path, "Resource");
         }
       }
     } else if (code.equals("canonical")) {
       if (warning(errors, IssueType.EXCEPTION, stack.getLiteralPath(), sd != null, I18nConstants.SD_ED_TYPE_PROFILE_UNKNOWN, p)) {
-        String t = determineBaseType(sd);
+        StructureDefinition t = determineBaseType(sd);
         if (t == null) {
-          rule(errors, IssueType.EXCEPTION, stack.getLiteralPath(), code.equals(t), I18nConstants.SD_ED_TYPE_PROFILE_NOTYPE, p);
+          rule(errors, IssueType.EXCEPTION, stack.getLiteralPath(), false, I18nConstants.SD_ED_TYPE_PROFILE_NOTYPE, p);
         } else if (!VersionUtilities.isR5Ver(context.getVersion())) {
-          rule(errors, IssueType.EXCEPTION, stack.getLiteralPath(), VersionUtilities.getCanonicalResourceNames(context.getVersion()).contains(t) || "Resource".equals(t), I18nConstants.SD_ED_TYPE_PROFILE_WRONG_TARGET, p, t, code, path, "Canonical Resource");
+          rule(errors, IssueType.EXCEPTION, stack.getLiteralPath(), VersionUtilities.getCanonicalResourceNames(context.getVersion()).contains(t.getType()) || "Resource".equals(t.getType()), I18nConstants.SD_ED_TYPE_PROFILE_WRONG_TARGET, p, t, code, path, "Canonical Resource");
         } else {
-          rule(errors, IssueType.EXCEPTION, stack.getLiteralPath(), VersionUtilities.getCanonicalResourceNames(context.getVersion()).contains(t), I18nConstants.SD_ED_TYPE_PROFILE_WRONG_TARGET, p, t, code, path, "Canonical Resource");
+          rule(errors, IssueType.EXCEPTION, stack.getLiteralPath(), VersionUtilities.getCanonicalResourceNames(context.getVersion()).contains(t.getType()), I18nConstants.SD_ED_TYPE_PROFILE_WRONG_TARGET, p, t, code, path, "Canonical Resource");
         }  
       }
     } else {
@@ -325,14 +325,16 @@ public class StructureDefinitionValidator extends BaseValidator {
     }
   }
 
-  private boolean isInstanceOf(String t, String code) {
-    StructureDefinition sd = context.fetchTypeDefinition(t);
+  private boolean isInstanceOf(StructureDefinition sd, String code) {
     while (sd != null) {
       if (sd.getType().equals(code)) {
         return true;
       }
+      if (sd.getUrl().equals(code)) {
+        return true;
+      }
       sd = sd.hasBaseDefinition() ? context.fetchResource(StructureDefinition.class, sd.getBaseDefinition()) : null;
-      if (!(VersionUtilities.isR2Ver(context.getVersion()) || VersionUtilities.isR2BVer(context.getVersion())) && sd != null && !sd.getAbstract()) {
+      if (!(VersionUtilities.isR2Ver(context.getVersion()) || VersionUtilities.isR2BVer(context.getVersion())) && sd != null && !sd.getAbstract() && sd.getKind() != StructureDefinitionKind.LOGICAL) {
         sd = null;
       }
     }
@@ -340,11 +342,11 @@ public class StructureDefinitionValidator extends BaseValidator {
     return false;
   }
 
-  private String determineBaseType(StructureDefinition sd) {
-    while (sd != null && !sd.hasType() && sd.getDerivation() == TypeDerivationRule.CONSTRAINT) {
+  private StructureDefinition determineBaseType(StructureDefinition sd) {
+    while (sd != null && sd.getDerivation() == TypeDerivationRule.CONSTRAINT) {
       sd = context.fetchResource(StructureDefinition.class, sd.getBaseDefinition());
     }
-    return sd == null ? null : sd.getType();
+    return sd;
   }
 
   private boolean hasMustSupportExtension(Element type) {
@@ -389,7 +391,7 @@ public class StructureDefinitionValidator extends BaseValidator {
     }
     if (VersionUtilities.isR3Ver(context.getVersion())) {
       org.hl7.fhir.dstu3.model.Resource r3 = new org.hl7.fhir.dstu3.formats.JsonParser().parse(bs.toByteArray());
-      return (StructureDefinition) VersionConvertor_30_50.convertResource(r3, false);
+      return (StructureDefinition) VersionConvertor_30_50.convertResource(r3);
     }
     if (VersionUtilities.isR4Ver(context.getVersion())) {
       org.hl7.fhir.r4.model.Resource r4 = new org.hl7.fhir.r4.formats.JsonParser().parse(bs.toByteArray());
